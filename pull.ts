@@ -1,32 +1,42 @@
 /**
  * Sync a remote WordPress instance with Local.
- * @usage pull <domain> <username@hostname>
- * @flag --remote The remote host
+ * @usage pull <domain.com> <username@hostname>
+ * @flag --local_domain <domain.com> The local domain
  */
 
 import { $remote } from './_utils';
 
-if (typeof args[0] !== 'string' || args[0].length === 0) {
-	throw new Error("Domain must be a non-empty string.");
-}
-if (typeof args[1] !== 'string' || args[1].length === 0) {
-	throw new Error("Remote must be a non-empty string.");
-}
-const DOMAIN = args[0];
-const REMOTE = args[1];
-const LOCAL_DOMAIN = typeof flags.local_domain === 'string' ? flags.local_domain : DOMAIN.split('.')[0] + '.local';
-const PATH_REMOTE = `/sites/${DOMAIN}/files`;
-const PATH_LOCAL = await cwd();
+async function getSiteInfo() {
 
-if (!REMOTE) {
-	throw new Error("Use --remote to specify the remote host");
+	if (args.length < 2) {
+		throw new Error("Missing required arguments. Usage: pull <domain.com> <username@hostname>");
+	}
+	if (typeof args[0] !== 'string' || args[0].length === 0) {
+		throw new Error("Domain must be a non-empty string.");
+	}
+	if (typeof args[1] !== 'string' || args[1].length === 0) {
+		throw new Error("Remote must be a non-empty string in the format username@hostname.");
+	}
+
+	const DOMAIN = args[0];
+	const REMOTE = args[1];
+	const LOCAL_DOMAIN = typeof flags.local_domain === 'string' ? flags.local_domain : DOMAIN.split('.')[0] + '.local';
+	const PATH_REMOTE = `/sites/${DOMAIN}/files`;
+	const PATH_LOCAL = await cwd();
+	return {
+		DOMAIN,
+		REMOTE,
+		LOCAL_DOMAIN,
+		PATH_REMOTE,
+		PATH_LOCAL
+	}
 }
 
 function header(text: string) {
 	console.log(`===\n=== ${text}\n===`);
 }
 
-async function getDatabase() {
+async function getDatabase(REMOTE: string, PATH_REMOTE: string, PATH_LOCAL: string) {
 	console.log(ansis.bold(`Downloading the database`));
 	await $remote(REMOTE, `cd /tmp && wp db export --path=${PATH_REMOTE} /tmp/db.sql`);
 	await $spinner(`rsync ${REMOTE}:/tmp/db.sql ${PATH_LOCAL}`, ($) => {
@@ -35,7 +45,7 @@ async function getDatabase() {
 	await $remote(REMOTE, `rm -f /tmp/db.sql`);
 }
 
-async function getFiles() {
+async function getFiles(REMOTE: string, PATH_REMOTE: string, PATH_LOCAL: string) {
 	await $spinner("Downloading Source Files", ($) => {
 		return $`rsync -azP ${REMOTE}:${PATH_REMOTE}/ ${PATH_LOCAL} --exclude=wp-content/cache --exclude=wp-config.php --delete`
 	});
@@ -54,7 +64,7 @@ function matchConstant(constant: string, content: string) {
 	return match ? match[1] : null;
 }
 
-async function rewriteConfig() {
+async function rewriteConfig(PATH_LOCAL: string) {
 	let config = await Bun.file(`${PATH_LOCAL}/wp-config.php`).text();
 
 	const existingConfig: DbConfig = {
@@ -72,7 +82,7 @@ async function rewriteConfig() {
 	await Bun.write(`${PATH_LOCAL}/wp-config.php`, config);
 }
 
-async function insertDatabase() {
+async function insertDatabase(PATH_LOCAL: string, DOMAIN: string, LOCAL_DOMAIN: string) {
 	const config = await Bun.file(`${PATH_LOCAL}/wp-config.php`).text();
 	const DB_NAME = matchConstant("DB_NAME", config);
 	await $`mysql -u root -e "USE ${DB_NAME}; SOURCE db.sql;"`;
@@ -83,16 +93,17 @@ async function insertDatabase() {
 }
 
 export default async function () {
+	const { DOMAIN, REMOTE, LOCAL_DOMAIN, PATH_REMOTE, PATH_LOCAL } = await getSiteInfo();
+
 	header(`Migrating ${DOMAIN}...`);
 	if (ack("Download Files?")) {
-		await getFiles();
+		await getFiles(REMOTE, PATH_REMOTE, PATH_LOCAL);
 	}
 	if (ack("Rewrite Config?")) {
-		await rewriteConfig();
+		await rewriteConfig(PATH_LOCAL);
 	}
 	if (ack("Download Database?")) {
-		await getDatabase();
-		await insertDatabase();
+		await getDatabase(REMOTE, PATH_REMOTE, PATH_LOCAL);
+		await insertDatabase(PATH_LOCAL, DOMAIN, LOCAL_DOMAIN);
 	}
 }
-
