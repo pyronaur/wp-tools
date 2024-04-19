@@ -28,7 +28,7 @@ export async function getDatabase(REMOTE: string, PATH_REMOTE: string, PATH_LOCA
 async function getFiles(REMOTE: string, PATH_REMOTE: string, PATH_LOCAL: string) {
 	const excludeConfig = flags['with-config'] ? '' : '--exclude=wp-config.php';
 	await $spinner("Downloading Source Files", ($) => {
-		return $`rsync -azP ${REMOTE}:${PATH_REMOTE}/ ${PATH_LOCAL} ${excludeConfig} --exclude=wp-content/cache --delete`
+		return $`rsync -azP ${REMOTE}:${PATH_REMOTE}/ ${PATH_LOCAL} ${excludeConfig} --exclude=wp-content/cache --exclude=wp-content/object-cache.php --delete`
 	});
 }
 
