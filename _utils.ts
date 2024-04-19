@@ -18,7 +18,7 @@ export async function getSiteInfo() {
 
 	const DOMAIN = args[0];
 	const REMOTE = args[1];
-	const LOCAL_DOMAIN = typeof flags.local_domain === 'string' ? flags.local_domain : DOMAIN.split('.')[0] + '.local';
+	const LOCAL_DOMAIN = typeof flags.local_domain === 'string' ? flags.local_domain : DOMAIN.split('.')[0] + '.test';
 	const PATH_REMOTE = `/sites/${DOMAIN}/files`;
 	const PATH_LOCAL = await cwd();
 	return {
