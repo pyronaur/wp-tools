@@ -87,4 +87,11 @@ export default async function () {
 		await getDatabase(REMOTE, PATH_REMOTE, PATH_LOCAL);
 		await insertDatabase(PATH_LOCAL, DOMAIN, LOCAL_DOMAIN);
 	}
+
+	if (ack("Search And Replace?")) {
+		await $`wp search-replace ${DOMAIN} ${LOCAL_DOMAIN}`;
+	}
+	if (ack("Convert https to http?")) {
+		await $`wp search-replace https://${LOCAL_DOMAIN} http://${LOCAL_DOMAIN}`;
+	}
 }
