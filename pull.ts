@@ -4,7 +4,7 @@
  * @flag --local_domain <domain.com> The local domain
  * @flag --with-config Include wp-config.php in the download
  */
-import { $remote, getSiteInfo } from './_utils';
+import { $remote, rsync } from './lib/utils';
 import { getConfig } from './lib/config';
 
 function header(text: string) {
@@ -22,10 +22,6 @@ export async function getDatabase(REMOTE: string, PATH_REMOTE: string, PATH_LOCA
 	} finally {
 		await $remote(REMOTE, `rm -f /tmp/db.sql /tmp/db.tar.gz`);
 	}
-}
-
-async function rsync(from: string, to: string, additionalFlags: string) {
-	return $`rsync -az --delete --progress --human-readable ${from} ${to} ${{ raw: additionalFlags }}`;
 }
 
 type GetFiles = {
