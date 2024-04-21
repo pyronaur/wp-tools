@@ -4,9 +4,8 @@
  * @flag --local_domain <domain.com> The local domain
  * @flag --with-config Include wp-config.php in the download
  */
-
 import { $remote, getSiteInfo } from './_utils';
-
+import { getConfig } from './lib/config';
 
 function header(text: string) {
 	console.log(`===\n=== ${text}\n===`);
@@ -25,11 +24,29 @@ export async function getDatabase(REMOTE: string, PATH_REMOTE: string, PATH_LOCA
 	}
 }
 
-async function getFiles(REMOTE: string, PATH_REMOTE: string, PATH_LOCAL: string) {
-	const excludeConfig = flags['with-config'] ? '' : '--exclude=wp-config.php';
-	await $spinner("Downloading Source Files", ($) => {
-		return $`rsync -azP ${REMOTE}:${PATH_REMOTE}/ ${PATH_LOCAL} ${excludeConfig} --exclude=wp-content/cache --exclude=wp-content/object-cache.php --delete`
-	});
+async function rsync(from: string, to: string, additionalFlags: string) {
+	return $`rsync -az --delete --progress --human-readable ${from} ${to} ${{ raw: additionalFlags }}`;
+}
+
+type GetFiles = {
+	remote: string;
+	remote_path: string;
+	local_path: string;
+	excludes: string[];
+}
+async function getFiles({ remote, remote_path, local_path, excludes }: GetFiles) {
+
+	excludes.push('wp-tools.json');
+	if (flags['with-config'] !== true) {
+		excludes.push('wp-config.php')
+	}
+
+	const additionalFlags: string[] = [
+		...excludes.map(exclude => `--exclude=${$.escape(exclude)}`),
+		'--no-links'
+	]
+
+	await rsync(`${remote}:${remote_path}/`, local_path, additionalFlags.join(' '))
 }
 
 type DbConfig = {
@@ -73,25 +90,52 @@ async function insertDatabase(PATH_LOCAL: string, DOMAIN: string, LOCAL_DOMAIN: 
 	}
 }
 
+async function searchAndReplace(pairs: { local: string, remote: string }[]) {
+	for (const { local, remote } of pairs) {
+		await $`wp search-replace ${remote} ${local}`;
+	}
+}
+
 export default async function () {
-	const { DOMAIN, REMOTE, LOCAL_DOMAIN, PATH_REMOTE, PATH_LOCAL } = await getSiteInfo();
+	const config = await getConfig(await cwd());
+	const DOMAIN = config.domain.remote;
+	const LOCAL_DOMAIN = config.domain.local;
+	const PATH_REMOTE = config.path.remote;
+	const PATH_LOCAL = config.path.local;
+	const REMOTE = config.ssh_host;
+
+
 
 	header(`Migrating ${DOMAIN}...`);
 	if (ack("Download Files?")) {
-		await getFiles(REMOTE, PATH_REMOTE, PATH_LOCAL);
+		const wpConfigPath = `${PATH_LOCAL}/wp-config.php`;
+		const configExists = await Bun.file(wpConfigPath).exists();
+		const wpConfig = configExists ? await Bun.file(wpConfigPath).text() : null;
+
+		await getFiles({
+			remote: REMOTE,
+			remote_path: PATH_REMOTE,
+			local_path: PATH_LOCAL,
+			excludes: [...config.rsync.excludes, ...config.rsync.on_pull?.excludes],
+		});
+
+		if (wpConfig && await Bun.file(wpConfigPath).exists()) {
+			const newWpConfig = await Bun.file(wpConfigPath).text();
+			if (newWpConfig !== wpConfig && ack("Rewrite wp-config.php?")) {
+				await rewriteConfig(PATH_LOCAL);
+			}
+		}
 	}
-	if (ack("Rewrite Config?")) {
-		await rewriteConfig(PATH_LOCAL);
-	}
+
+
 	if (ack("Download Database?")) {
 		await getDatabase(REMOTE, PATH_REMOTE, PATH_LOCAL);
 		await insertDatabase(PATH_LOCAL, DOMAIN, LOCAL_DOMAIN);
+		if (ack("Search And Replace?")) {
+			await searchAndReplace(config.rsync.replace);
+		}
 	}
 
-	if (ack("Search And Replace?")) {
-		await $`wp search-replace ${DOMAIN} ${LOCAL_DOMAIN}`;
-	}
-	if (ack("Convert https to http?")) {
-		await $`wp search-replace https://${LOCAL_DOMAIN} http://${LOCAL_DOMAIN}`;
-	}
+
 }
+

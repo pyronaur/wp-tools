@@ -14,11 +14,9 @@ export type Config = {
 		filters: string[];
 		on_pull?: {
 			excludes?: string[];
-			filters?: string[];
 		},
 		on_push?: {
 			excludes?: string[];
-			filters?: string[];
 		},
 		replace: {
 			remote: string,
