@@ -1,7 +1,6 @@
 /**
  * Pull a remote WordPress instance to a local environment.
- * @usage pull <domain.com> <username@hostname>
- * @flag --local_domain <domain.com> The local domain
+ * @usage pull
  * @flag --with-config Include wp-config.php in the download
  */
 import { $remote, rsync } from './lib/utils';
