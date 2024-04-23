@@ -63,8 +63,8 @@ export default async function backup() {
 	}
 
 	// Verify the integrity of the downloaded tar.gz file
-	await $spinner(`Verifying the integrity of ${tarFile}`, () =>
-		verifyTarIntegrity(tarFile)
+	await $spinner(`Verifying the integrity of ${localFile}`, () =>
+		verifyTarIntegrity(localFile)
 	);
 
 	// 5. Remove the temporary files and directory
