@@ -32,10 +32,6 @@ type GetFiles = {
 async function getFiles({ remote, remote_path, local_path, excludes }: GetFiles) {
 
 	excludes.push('wp-tools.json');
-	if (flags['with-config'] !== true) {
-		excludes.push('wp-config.php')
-	}
-
 	const additionalFlags: string[] = [
 		...excludes.map(exclude => `--exclude=${$.escape(exclude)}`),
 		'--no-links'
