@@ -31,7 +31,7 @@ type GetFiles = {
 }
 async function getFiles({ remote, remote_path, local_path, excludes }: GetFiles) {
 
-	excludes.push('wp-tools.json');
+	excludes.push('wpt.json');
 	const additionalFlags: string[] = [
 		...excludes.map(exclude => `--exclude=${$.escape(exclude)}`),
 		'--no-links'

@@ -27,7 +27,7 @@ function untrailingslashit( path: string) {
 
 async function pushFiles({ remote, remote_path, local_path, excludes }: PushFiles) {
 
-	excludes.push('wp-tools.json');
+	excludes.push('wpt.json');
 	const additionalFlags: string[] = [
 		...excludes.map(exclude => `--exclude=${$.escape(exclude)}`),
 		'--no-links'
