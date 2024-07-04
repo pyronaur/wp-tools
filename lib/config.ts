@@ -11,6 +11,7 @@ export type Config = {
 	}
 	rsync: {
 		excludes: string[];
+		includes: string[];
 		filters: string[];
 		on_pull?: {
 			excludes?: string[];

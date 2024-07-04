@@ -15,6 +15,7 @@ type PushFiles = {
 	remote_path: string;
 	local_path: string;
 	excludes: string[];
+	includes: string[];
 }
 
 function trailingslashit( path: string) {
@@ -49,6 +50,7 @@ export default async function () {
 			remote_path: PATH_REMOTE,
 			local_path: PATH_LOCAL,
 			excludes: [...config.rsync.excludes, ...config.rsync.on_push?.excludes],
+			includes: [...config.rsync.includes, ...config.rsync.on_push?.includes],
 		});
 	}
 }
