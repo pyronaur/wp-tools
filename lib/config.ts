@@ -14,9 +14,11 @@ export type Config = {
 		filters: string[];
 		on_pull?: {
 			excludes?: string[];
+			includes?: string[];
 		},
 		on_push?: {
 			excludes?: string[];
+			includes?: string[];
 		},
 		replace: {
 			remote: string,
@@ -58,11 +60,11 @@ async function setupConfig() {
 			filters: [],
 			on_pull: {
 				excludes: [],
-				filters: [],
+				includes: [],
 			},
 			on_push: {
 				excludes: [],
-				filters: [],
+				includes: [],
 			},
 			replace: [],
 		},
@@ -96,19 +98,9 @@ async function setupConfig() {
 		config.rsync.on_pull.excludes.push(input);
 	}
 
-	while (ack("Add rsync filter for pull?")) {
-		const input = await ask("Filter on Pull");
-		config.rsync.on_pull.filters.push(input);
-	}
-
 	while (ack("Add rsync exclude for push?")) {
 		const input = await ask("Exclude on Push");
 		config.rsync.on_push.excludes.push(input);
-	}
-
-	while (ack("Add rsync filter for push?")) {
-		const input = await ask("Filter on Push");
-		config.rsync.on_push.filters.push(input);
 	}
 
 	while (ack("Add post-pull database replace?")) {
