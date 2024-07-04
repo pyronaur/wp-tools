@@ -29,7 +29,7 @@ export type Config = {
 	backup: {
 		destination: string;
 		excludes: string[];
-		filters: string[];
+		includes: string[];
 	}
 
 }
@@ -57,6 +57,7 @@ async function setupConfig() {
 			local: '',
 		},
 		rsync: {
+			includes: [],
 			excludes: [],
 			filters: [],
 			on_pull: {
@@ -72,7 +73,7 @@ async function setupConfig() {
 		backup: {
 			destination: '',
 			excludes: [],
-			filters: [],
+			includes: [],
 		},
 	};
 
@@ -89,9 +90,10 @@ async function setupConfig() {
 		config.rsync.excludes.push(input);
 	}
 
-	while (ack("Add global rsync filter?")) {
-		const input = await ask("Add Filter");
-		config.rsync.filters.push(input);
+	console.log(ansis.dim`Includes override excludes`);
+	while (ack("Add global rsync include?")) {
+		const input = await ask("Add Include");
+		config.rsync.includes.push(input);
 	}
 
 	while (ack("Add rsync exclude for pull?")) {
@@ -99,9 +101,21 @@ async function setupConfig() {
 		config.rsync.on_pull.excludes.push(input);
 	}
 
+	console.log(ansis.dim`Includes override excludes on pull`);
+	while (ack("Add rsync include for pull?")) {
+		const input = await ask("Include on Pull");
+		config.rsync.on_pull.includes.push(input);
+	}
+
 	while (ack("Add rsync exclude for push?")) {
 		const input = await ask("Exclude on Push");
 		config.rsync.on_push.excludes.push(input);
+	}
+
+	console.log(ansis.dim`Includes override excludes on push`);
+	while (ack("Add rsync include for push?")) {
+		const input = await ask("Include on Push");
+		config.rsync.on_push.includes.push(input);
 	}
 
 	while (ack("Add post-pull database replace?")) {
@@ -115,8 +129,8 @@ async function setupConfig() {
 		config.backup.excludes.push(input);
 	}
 
-	while (ack("Add Backup Filter?")) {
-		const input = await ask("Backup Filter");
+	while (ack("Add Backup Include?")) {
+		const input = await ask("Backup Include");
 		config.backup.filters.push(input);
 	}
 
