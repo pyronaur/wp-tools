@@ -39,7 +39,7 @@ export const log = {
 }
 
 async function configFilePath() {
-	return path.resolve(await cwd(), 'wp-tools.json');
+	return path.resolve(await cwd(), 'wpt.json');
 }
 
 async function setupConfig() {
