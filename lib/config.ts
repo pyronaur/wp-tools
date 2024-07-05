@@ -10,25 +10,36 @@ export type Config = {
 		local: string;
 	}
 	rsync: {
-		excludes: string[];
+		excludes: {
+			global: string[];
+			paths: string[];
+		};
 		includes: string[];
-		filters: string[];
 		on_pull?: {
-			excludes?: string[];
+			excludes?: {
+				global: string[];
+				paths: string[];
+			};
 			includes?: string[];
 		},
 		on_push?: {
-			excludes?: string[];
+			excludes?: {
+				global: string[];
+				paths: string[];
+			};
 			includes?: string[];
 		},
 		replace: {
 			remote: string,
-			local: string
+		local: string
 		}[]
 	}
 	backup: {
 		destination: string;
-		excludes: string[];
+		excludes: {
+			global: string[];
+			paths: string[];
+		};
 		includes: string[];
 	}
 
@@ -58,21 +69,32 @@ async function setupConfig() {
 		},
 		rsync: {
 			includes: [],
-			excludes: [],
-			filters: [],
+			excludes: {
+				global: [],
+				paths: [],
+			},
 			on_pull: {
-				excludes: [],
+				excludes: {
+					global: [],
+					paths: [],
+				},
 				includes: [],
 			},
 			on_push: {
-				excludes: [],
+				excludes: {
+					global: [],
+					paths: [],
+				},
 				includes: [],
 			},
 			replace: [],
 		},
 		backup: {
 			destination: '',
-			excludes: [],
+			excludes: {
+				global: [],
+				paths: [],
+			},
 			includes: [],
 		},
 	};
@@ -86,8 +108,13 @@ async function setupConfig() {
 	config.backup.destination = await ask("Backup Destination", config.backup.destination, 'required');
 
 	while (ack("Add global rsync exclude?")) {
-		const input = await ask("Add Exclude");
-		config.rsync.excludes.push(input);
+		const input = await ask("Add Global Exclude");
+		config.rsync.excludes.global.push(input);
+	}
+
+	while (ack("Add path-specific rsync exclude?")) {
+		const input = await ask("Add Path Exclude");
+		config.rsync.excludes.paths.push(input);
 	}
 
 	console.log(ansis.dim`Includes override excludes`);
@@ -96,9 +123,14 @@ async function setupConfig() {
 		config.rsync.includes.push(input);
 	}
 
-	while (ack("Add rsync exclude for pull?")) {
-		const input = await ask("Exclude on Pull");
-		config.rsync.on_pull.excludes.push(input);
+	while (ack("Add global rsync exclude for pull?")) {
+		const input = await ask("Global Exclude on Pull");
+		config.rsync.on_pull.excludes.global.push(input);
+	}
+
+	while (ack("Add path-specific rsync exclude for pull?")) {
+		const input = await ask("Path Exclude on Pull");
+		config.rsync.on_pull.excludes.paths.push(input);
 	}
 
 	console.log(ansis.dim`Includes override excludes on pull`);
@@ -107,9 +139,14 @@ async function setupConfig() {
 		config.rsync.on_pull.includes.push(input);
 	}
 
-	while (ack("Add rsync exclude for push?")) {
-		const input = await ask("Exclude on Push");
-		config.rsync.on_push.excludes.push(input);
+	while (ack("Add global rsync exclude for push?")) {
+		const input = await ask("Global Exclude on Push");
+		config.rsync.on_push.excludes.global.push(input);
+	}
+
+	while (ack("Add path-specific rsync exclude for push?")) {
+		const input = await ask("Path Exclude on Push");
+		config.rsync.on_push.excludes.paths.push(input);
 	}
 
 	console.log(ansis.dim`Includes override excludes on push`);
@@ -124,14 +161,19 @@ async function setupConfig() {
 		config.rsync.replace.push({ remote, local });
 	}
 
-	while (ack("Add Backup Exclude?")) {
-		const input = await ask("Backup Exclude");
-		config.backup.excludes.push(input);
+	while (ack("Add global backup exclude?")) {
+		const input = await ask("Global Backup Exclude");
+		config.backup.excludes.global.push(input);
+	}
+
+	while (ack("Add path-specific backup exclude?")) {
+		const input = await ask("Path Backup Exclude");
+		config.backup.excludes.paths.push(input);
 	}
 
 	while (ack("Add Backup Include?")) {
 		const input = await ask("Backup Include");
-		config.backup.filters.push(input);
+		config.backup.includes.push(input);
 	}
 
 	await Bun.write(await configFilePath(), JSON.stringify(config, null, 4));
@@ -149,7 +191,7 @@ export async function getConfig(directory: string) {
 
 	// Tweak the config
 	config.path.local = directory;
-	config.rsync.filters.push('.git', '.gitignore', '.gitmodules');
+	config.rsync.excludes.global.push('.git', '.gitignore', '.gitmodules');
 
 	return config as Config;
 }

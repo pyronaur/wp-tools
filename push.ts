@@ -14,27 +14,28 @@ type PushFiles = {
 	remote: string;
 	remote_path: string;
 	local_path: string;
-	excludes: string[];
+	excludes: {
+		global: string[];
+		paths: string[];
+	};
 	includes: string[];
 }
 
-function trailingslashit( path: string) {
+function trailingslashit(path: string) {
 	return untrailingslashit(path) + '/';
 }
 
-function untrailingslashit( path: string) {
+function untrailingslashit(path: string) {
 	return path.replace(/\/$/, '');
 }
 
-async function pushFiles({ remote, remote_path, local_path, excludes }: PushFiles) {
-
-	excludes.push('wpt.json');
-	const additionalFlags: string[] = [
-		...excludes.map(exclude => `--exclude=${$.escape(exclude)}`),
-		'--no-links'
-	]
-
-	await rsync(trailingslashit(local_path), `${remote}:${trailingslashit(remote_path)}`, additionalFlags.join(' '))
+async function pushFiles({ remote, remote_path, local_path, includes, excludes }: PushFiles) {
+	excludes.global.push('wpt.json');
+	await rsync(trailingslashit(local_path), `${remote}:${trailingslashit(remote_path)}`, {
+		additionalFlags: `--no-links`,
+		includes: includes,
+		excludes: excludes,
+	})
 }
 
 export default async function () {
@@ -49,8 +50,11 @@ export default async function () {
 			remote: REMOTE,
 			remote_path: PATH_REMOTE,
 			local_path: PATH_LOCAL,
-			excludes: [...config.rsync.excludes, ...config.rsync.on_push?.excludes],
-			includes: [...config.rsync.includes, ...config.rsync.on_push?.includes],
+			excludes: {
+				global: [...config.rsync.excludes.global, ...(config.rsync.on_push?.excludes?.global || [])],
+				paths: [...config.rsync.excludes.paths, ...(config.rsync.on_push?.excludes?.paths || [])],
+			},
+			includes: [...config.rsync.includes, ...(config.rsync.on_push?.includes || [])],
 		});
 	}
 }
