@@ -2,8 +2,8 @@
  * Backup a WordPress site
  */
 import { getConfig } from './lib/config';
-import { $remote, $remoteFileExists, rsync } from './lib/utils';
-import { unlinkSync } from "node:fs";
+import { $remote, $remoteFileExists } from './lib/utils';
+
 function formatDate(date: Date): string {
 	const year = date.getFullYear();
 	const month = String(date.getMonth() + 1).padStart(2, '0');
