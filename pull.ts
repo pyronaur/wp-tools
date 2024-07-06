@@ -27,17 +27,20 @@ type GetFiles = {
 	remote: string;
 	remote_path: string;
 	local_path: string;
-	excludes: string[];
+	excludes: {
+		global: string[];
+		paths: string[];
+	};
+	includes: string[];
 }
-async function getFiles({ remote, remote_path, local_path, excludes }: GetFiles) {
 
-	excludes.push('wpt.json');
-	const additionalFlags: string[] = [
-		...excludes.map(exclude => `--exclude=${$.escape(exclude)}`),
-		'--no-links'
-	]
-
-	await rsync(`${remote}:${remote_path}/`, local_path, additionalFlags.join(' '))
+async function getFiles({ remote, remote_path, local_path, excludes, includes }: GetFiles) {
+	excludes.global.push('wpt.json');
+	await rsync(`${remote}:${remote_path}/`, local_path, {
+		additionalFlags: `--no-links`,
+		includes: includes,
+		excludes: excludes,
+	});
 }
 
 type DbConfig = {
@@ -95,8 +98,6 @@ export default async function () {
 	const PATH_LOCAL = config.path.local;
 	const REMOTE = config.ssh_host;
 
-
-
 	header(`Migrating ${DOMAIN}...`);
 	if (ack("Download Files?")) {
 		const wpConfigPath = `${PATH_LOCAL}/wp-config.php`;
@@ -107,7 +108,11 @@ export default async function () {
 			remote: REMOTE,
 			remote_path: PATH_REMOTE,
 			local_path: PATH_LOCAL,
-			excludes: [...config.rsync.excludes, ...config.rsync.on_pull?.excludes],
+			excludes: {
+				global: [...config.rsync.excludes.global, ...(config.rsync.on_pull?.excludes?.global || [])],
+				paths: [...config.rsync.excludes.paths, ...(config.rsync.on_pull?.excludes?.paths || [])],
+			},
+			includes: [...config.rsync.includes, ...(config.rsync.on_pull?.includes || [])],
 		});
 
 		if (wpConfig && await Bun.file(wpConfigPath).exists()) {
@@ -118,7 +123,6 @@ export default async function () {
 		}
 	}
 
-
 	if (ack("Download Database?")) {
 		await getDatabase(REMOTE, PATH_REMOTE, PATH_LOCAL);
 		await insertDatabase(PATH_LOCAL, DOMAIN, LOCAL_DOMAIN);
@@ -126,7 +130,4 @@ export default async function () {
 			await searchAndReplace(config.rsync.replace);
 		}
 	}
-
-
 }
-
