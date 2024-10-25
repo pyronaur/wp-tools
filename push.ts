@@ -1,7 +1,6 @@
 /**
  * Push files from a local environment to a remote WordPress instance.
- * @usage push
- * @flag --with-config Include wp-config.php in the upload
+ * @flag [[--with-config]] Include wp-config.php in the upload
  */
 import { rsync } from './lib/utils';
 import { getConfig } from './lib/config';
